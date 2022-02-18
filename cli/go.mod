@@ -16,7 +16,7 @@ require (
 	github.com/vmware-tanzu/carvel-vendir v0.23.0
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
 	k8s.io/api v0.22.1 // kubernetes-1.22.1
-	k8s.io/apimachinery v0.22.1 // kubernetes-1.22.1
+	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1 // kubernetes-1.22.1
 )
 
