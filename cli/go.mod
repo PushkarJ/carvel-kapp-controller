@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/cppforlife/cobrautil v0.0.0-20200514214827-bb86e6965d72
+	github.com/cppforlife/color v1.9.1-0.20200716202919-6706ac40b835
 	github.com/cppforlife/go-cli-ui v0.0.0-20200716203538-1e47f820817f
 	github.com/getkin/kin-openapi v0.81.0
 	github.com/google/go-containerregistry v0.1.2
