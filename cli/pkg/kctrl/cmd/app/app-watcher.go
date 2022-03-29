@@ -11,6 +11,7 @@ import (
 	"github.com/cppforlife/color"
 	"github.com/cppforlife/go-cli-ui/ui"
 	uitable "github.com/cppforlife/go-cli-ui/ui/table"
+	"github.com/k14s/difflib"
 	kcv1alpha1 "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apis/kappctrl/v1alpha1"
 	kcclient "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned"
 	kcexternalversions "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/informers/externalversions"
@@ -30,6 +31,8 @@ type AppWatcher struct {
 
 	stopperChan       chan struct{}
 	erroredWhileWatch bool
+
+	lastSeenDeployStdout string
 }
 
 func NewAppWatcher(namespace string, name string, ignoreIfExists bool, ui ui.UI, client kcclient.Interface) *AppWatcher {
@@ -111,7 +114,7 @@ func (o *AppWatcher) printUpdate(oldStatus kcv1alpha1.AppStatus, status kcv1alph
 				o.stopWatch(true)
 				return
 			}
-			o.printLogLine("Deploying", status.Deploy.Stdout, false, nil)
+			o.printDeployStdout(status.Deploy.Stdout)
 		}
 	}
 	if o.hasReconciled(status) {
@@ -256,4 +259,27 @@ func (o *AppWatcher) indentMessageBlock(messageBlock string, errored bool) strin
 		indentedBlock += "\n"
 	}
 	return indentedBlock
+}
+
+func (o *AppWatcher) printDeployStdout(stdout string) {
+	if o.lastSeenDeployStdout == "" {
+		o.lastSeenDeployStdout = stdout
+		o.printLogLine("Deploying", stdout, false, nil)
+		return
+	}
+
+	oldLines := strings.Split(o.lastSeenDeployStdout, "\n")
+	newLines := strings.Split(stdout, "\n")
+	diff := difflib.Diff(oldLines, newLines)
+
+	var lines []string
+	for _, diffLine := range diff {
+		switch diffLine.Delta {
+		case difflib.RightOnly:
+			lines = append(lines, diffLine.Payload)
+		}
+	}
+
+	o.lastSeenDeployStdout = stdout
+	o.ui.BeginLinef(o.indentMessageBlock(strings.Join(lines, "\n"), false))
 }

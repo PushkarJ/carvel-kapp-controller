@@ -60,7 +60,7 @@ func (o *StatusOptions) Run() error {
 		if !(errors.IsNotFound(err) && o.IgnoreNotExists) {
 			return err
 		}
-		o.ui.PrintLinef("AppCR '' in namespace '' does not exist...")
+		o.ui.PrintLinef("AppCR '%s' in namespace '%s' does not exist...", o.Name, o.NamespaceFlags)
 	}
 
 	appWatcher := NewAppWatcher(o.NamespaceFlags.Name, o.Name, o.IgnoreNotExists, o.ui, client)
