@@ -167,51 +167,41 @@ func (o *GetOptions) show(client pkgclient.Interface, pkgName, pkgVersion string
 			uitable.NewValueString(wordwrap.WrapString(pkg.Spec.ReleaseNotes, 80)),
 			uitable.NewValueStrings(pkg.Spec.Licenses),
 		}...)
+	} else {
+		listOpts := metav1.ListOptions{}
+		if len(o.Name) > 0 {
+			listOpts.FieldSelector = fields.Set{"spec.refName": o.Name}.String()
+		}
+
+		pkgList, err := client.DataV1alpha1().Packages(
+			o.NamespaceFlags.Name).List(context.Background(), listOpts)
+		if err != nil {
+			return err
+		}
+
+		if pkgMetadata == nil && len(pkgList.Items) == 0 {
+			return fmt.Errorf("Package '%s' not found in namespace '%s'", o.Name, o.NamespaceFlags.Name)
+		}
+
+		headers = append(headers, []uitable.Header{
+			uitable.NewHeader("Versions"),
+		}...)
+
+		versions := []versionDetails{}
+
+		for _, pkg := range pkgList.Items {
+			versions = append(versions, versionDetails{pkg.Spec.Version, pkg.Spec.ReleasedAt})
+		}
+
+		row = append(row, []uitable.Value{
+			uitable.NewValueInterface(versions),
+		}...)
 	}
 
 	table := uitable.Table{
 		Transpose: true,
 		Header:    headers,
 		Rows:      [][]uitable.Value{row},
-	}
-
-	o.ui.PrintTable(table)
-
-	if pkgVersion == "" {
-		return o.showVersions(client)
-	}
-
-	return nil
-}
-
-func (o *GetOptions) showVersions(client pkgclient.Interface) error {
-	listOpts := metav1.ListOptions{}
-	if len(o.Name) > 0 {
-		listOpts.FieldSelector = fields.Set{"spec.refName": o.Name}.String()
-	}
-
-	pkgList, err := client.DataV1alpha1().Packages(
-		o.NamespaceFlags.Name).List(context.Background(), listOpts)
-	if err != nil {
-		return err
-	}
-
-	table := uitable.Table{
-		Header: []uitable.Header{
-			uitable.NewHeader("Version"),
-			uitable.NewHeader("Released at"),
-		},
-
-		SortBy: []uitable.ColumnSort{
-			{Column: 0, Asc: true},
-		},
-	}
-
-	for _, pkg := range pkgList.Items {
-		table.Rows = append(table.Rows, []uitable.Value{
-			uitable.NewValueString(pkg.Spec.Version),
-			uitable.NewValueString(pkg.Spec.ReleasedAt.String()),
-		})
 	}
 
 	o.ui.PrintTable(table)
@@ -268,4 +258,9 @@ func (o *GetOptions) showValuesSchema(client pkgclient.Interface, pkgName, pkgVe
 	o.ui.PrintTable(table)
 
 	return err
+}
+
+type versionDetails struct {
+	Version    string      `json:"version,omitempty"`
+	ReleasedAt metav1.Time `json:"released-at,omitempty"`
 }

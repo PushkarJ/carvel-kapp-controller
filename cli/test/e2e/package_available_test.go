@@ -100,14 +100,10 @@ spec:
 	})
 
 	logger.Section("getting a nonexisting package", func() {
-		out := kappCtrl.Run([]string{"package", "available", "get", "-p", packageName, "--json"})
-
-		output := uitest.JSONUIFromBytes(t, []byte(out))
-
-		expectedOutputRows := []map[string]string{{
-			"name": packageName,
-		}}
-		require.Exactly(t, expectedOutputRows, output.Tables[0].Rows)
+		_, err := kappCtrl.RunWithOpts([]string{"package", "available", "get", "-p", packageName, "--json"}, RunOpts{
+			AllowError: true,
+		})
+		require.Error(t, err, "Expected to get an error")
 	})
 
 	logger.Section("listing packages", func() {
@@ -152,6 +148,11 @@ spec:
 
 		output := uitest.JSONUIFromBytes(t, []byte(out))
 
+		versions := `- version: 1.0.0
+  releasedat: "0001-01-01T00:00:00Z"
+- version: 1.1.0
+  releasedat: "0001-01-01T00:00:00Z"`
+
 		expectedOutputRows := []map[string]string{{
 			"categories":          "",
 			"display_name":        "Carvel Test Package",
@@ -161,20 +162,9 @@ spec:
 			"provider":            "",
 			"short_description":   "Carvel package for testing installation",
 			"support_description": "",
+			"versions":            versions,
 		}}
 		require.Exactly(t, expectedOutputRows, output.Tables[0].Rows)
-
-		expectedOutputRows = []map[string]string{
-			{
-				"version":     "1.0.0",
-				"released_at": "0001-01-01 00:00:00 +0000 UTC",
-			},
-			{
-				"version":     "1.1.0",
-				"released_at": "0001-01-01 00:00:00 +0000 UTC",
-			},
-		}
-		require.Exactly(t, expectedOutputRows, output.Tables[1].Rows)
 	})
 
 	logger.Section("getting value schema of a package", func() {
